@@ -1,0 +1,25 @@
+# Build
+bin/
+obj/
+/artifacts/
+publish/
+
+# IDE
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+
+# NuGet
+*.nupkg
+packages/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test
+TestResults/
+coverage/
+*.trx
