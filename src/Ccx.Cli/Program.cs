@@ -25,6 +25,17 @@ for (var i = 0; i < args.Length; i++)
 {
     switch (args[i])
     {
+        case "--help" or "-h":
+            AnsiConsole.MarkupLine("[bold]ccx[/] — Claude Code for .NET");
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine("[bold]Usage:[/] ccx [[options]]");
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine("[bold]Options:[/]");
+            AnsiConsole.MarkupLine("  --model <model>    Model to use (default: from settings)");
+            AnsiConsole.MarkupLine("  --api-key <key>    Anthropic API key");
+            AnsiConsole.MarkupLine("  --cost             Show cost summary on exit");
+            AnsiConsole.MarkupLine("  -h, --help         Show this help");
+            return 0;
         case "--model" when i + 1 < args.Length:
             cliModel = args[++i];
             break;
