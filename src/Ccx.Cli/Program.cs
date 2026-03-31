@@ -80,6 +80,10 @@ tools.Register(new FileEditTool());
 tools.Register(new GlobTool());
 tools.Register(new GrepTool());
 tools.Register(new WebFetchTool());
+tools.Register(new WebSearchTool());
+tools.Register(new TodoWriteTool());
+tools.Register(new NotebookEditTool());
+tools.Register(new AgentTool(new AgentSpawner(client)));
 
 // --- Permission system ---
 var classifier = new PermissionClassifier();
@@ -109,8 +113,11 @@ var skillExecutor = new SkillExecutor(skillLoader);
 // --- Load CLAUDE.md context ---
 var claudeMd = ClaudeMdDiscovery.LoadCombined();
 
+// --- Build system prompt ---
+var systemPrompt = PromptBuilder.BuildSystemPrompt(tools.All, claudeMd);
+
 // --- Main loop ---
-var engine = new QueryEngine(client, tools, text => AnsiConsole.Write(new Markup(Markup.Escape(text))));
+var engine = new QueryEngine(client, tools, text => AnsiConsole.Write(new Markup(Markup.Escape(text))), systemPrompt);
 
 AnsiConsole.MarkupLine("[bold]ccx[/] — Claude Code for .NET");
 AnsiConsole.MarkupLine($"Model: [cyan]{Markup.Escape(model)}[/] | Tools: [cyan]{tools.Count}[/]");
@@ -127,11 +134,7 @@ Console.CancelKeyPress += (_, e) =>
     cts.Cancel();
 };
 
-// Add system prompt with CLAUDE.md if available
-if (!string.IsNullOrEmpty(claudeMd))
-{
-    // System prompt will be injected via MessageRequest in QueryEngine
-}
+// System prompt is now injected via QueryEngine constructor
 
 while (!cts.IsCancellationRequested)
 {

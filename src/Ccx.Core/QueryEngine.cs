@@ -11,12 +11,14 @@ public sealed class QueryEngine
     private readonly IClaudeClient _client;
     private readonly ToolRegistry _tools;
     private readonly Action<string>? _onTextDelta;
+    private readonly string? _systemPrompt;
 
-    public QueryEngine(IClaudeClient client, ToolRegistry tools, Action<string>? onTextDelta = null)
+    public QueryEngine(IClaudeClient client, ToolRegistry tools, Action<string>? onTextDelta = null, string? systemPrompt = null)
     {
         _client = client;
         _tools = tools;
         _onTextDelta = onTextDelta;
+        _systemPrompt = systemPrompt;
     }
 
     public async Task<List<ContentBlock>> RunAsync(List<Message> messages, CancellationToken ct = default)
@@ -29,7 +31,8 @@ public sealed class QueryEngine
             {
                 MaxTokens = 8192,
                 Messages = messages,
-                Tools = GetToolDefinitions()
+                Tools = GetToolDefinitions(),
+                System = _systemPrompt
             };
 
             var (blocks, stopReason) = await StreamResponseAsync(request, ct);
