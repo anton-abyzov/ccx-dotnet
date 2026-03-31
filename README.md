@@ -1,4 +1,4 @@
-# claude-code-dotnet
+# ccx-dotnet
 
 A .NET implementation of an AI coding assistant CLI. Cross-platform AOT-compiled binary for enterprise environments. The only AI coding CLI built on .NET.
 
@@ -72,21 +72,21 @@ tests/
 ## Getting Started
 
 ```sh
-dotnet tool install -g claude-code-dotnet
+dotnet tool install -g ccx-dotnet
 ```
 
 ## Development
 
 ```sh
-git clone https://github.com/anton-abyzov/claude-code-dotnet.git
-cd claude-code-dotnet
+git clone https://github.com/anton-abyzov/ccx-dotnet.git
+cd ccx-dotnet
 dotnet build
 dotnet test
 ```
 
 ## Requirements
 
-- .NET 9 SDK
+- .NET 10 SDK
 - AOT publishing requires platform-specific toolchain
 
 ## License

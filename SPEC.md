@@ -1,6 +1,6 @@
-# claude-code-dotnet -- Implementation Spec
+# ccx-dotnet -- Implementation Spec
 
-## Strategy: .NET 9 AOT, Spectre.Console, Enterprise-First
+## Strategy: .NET 10 AOT, Spectre.Console, Enterprise-First
 
 The only AI coding assistant CLI built on .NET. Targeting enterprise .NET shops
 who are underserved by the Python/Node/Rust AI tool ecosystem.
@@ -155,7 +155,7 @@ public class AgentManager
 - `dotnet publish -r win-x64 --self-contained -p:PublishAot=true`
 - `dotnet publish -r osx-arm64 --self-contained -p:PublishAot=true`
 - `dotnet publish -r linux-x64 --self-contained -p:PublishAot=true`
-- NuGet tool package: `dotnet tool install -g claude-code-dotnet`
+- NuGet tool package: `dotnet tool install -g ccx-dotnet`
 - GitHub releases with platform binaries
 
 ### P6-02: Enterprise config
@@ -171,4 +171,4 @@ public class AgentManager
 - **No Entity Framework**: Pure file-based config and state (no database)
 - **Spectre.Console only**: No System.Console direct calls (testable via IAnsiConsole mock)
 - **Minimal dependencies**: Lean on stdlib where possible. HttpClient > RestSharp
-- **Target .NET 9**: LTS, best AOT support, latest language features
+- **Target .NET 10**: LTS (November 2025 - November 2028), best AOT support, C# 14
