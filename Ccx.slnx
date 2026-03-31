@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Ccx.Api/Ccx.Api.csproj" />
+    <Project Path="src/Ccx.Cli/Ccx.Cli.csproj" />
+    <Project Path="src/Ccx.Core/Ccx.Core.csproj" />
+    <Project Path="src/Ccx.Tools/Ccx.Tools.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ccx.Api.Tests/Ccx.Api.Tests.csproj" />
+    <Project Path="tests/Ccx.Core.Tests/Ccx.Core.Tests.csproj" />
+  </Folder>
+</Solution>
