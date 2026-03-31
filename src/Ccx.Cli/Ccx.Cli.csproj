@@ -13,8 +13,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Ccx.Compact\Ccx.Compact.csproj" />
+    <ProjectReference Include="..\Ccx.Config\Ccx.Config.csproj" />
     <ProjectReference Include="..\Ccx.Core\Ccx.Core.csproj" />
+    <ProjectReference Include="..\Ccx.Mcp\Ccx.Mcp.csproj" />
+    <ProjectReference Include="..\Ccx.Permissions\Ccx.Permissions.csproj" />
+    <ProjectReference Include="..\Ccx.Skills\Ccx.Skills.csproj" />
     <ProjectReference Include="..\Ccx.Tools\Ccx.Tools.csproj" />
+    <ProjectReference Include="..\Ccx.Tui\Ccx.Tui.csproj" />
   </ItemGroup>
 
 </Project>
