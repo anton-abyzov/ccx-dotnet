@@ -2,6 +2,7 @@ using Ccx.Api;
 using Ccx.Api.Models;
 using Ccx.Core;
 using Ccx.Tools;
+using Ccx.Tools.Tools;
 using Spectre.Console;
 
 var apiKey = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
@@ -29,6 +30,16 @@ if (string.IsNullOrEmpty(apiKey))
 using var http = new HttpClient();
 var client = new ClaudeClient(http, apiKey, model);
 var tools = new ToolRegistry();
+
+// Register core tools
+tools.Register(new BashTool());
+tools.Register(new FileReadTool());
+tools.Register(new FileWriteTool());
+tools.Register(new FileEditTool());
+tools.Register(new GlobTool());
+tools.Register(new GrepTool());
+tools.Register(new WebFetchTool());
+
 var engine = new QueryEngine(client, tools, text => Console.Write(text));
 
 AnsiConsole.MarkupLine("[bold]ccx[/] — Claude Code for .NET");
