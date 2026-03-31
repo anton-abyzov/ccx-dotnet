@@ -2,6 +2,20 @@
 
 A .NET implementation of an AI coding assistant CLI. Cross-platform AOT-compiled binary for enterprise environments. The only AI coding CLI built on .NET.
 
+## Backstory
+
+On March 31, 2026, security researcher Chaofan Shou ([@Fried_rice](https://x.com/Fried_rice/status/2038894956459290963)) discovered that Anthropic's npm package `@anthropic-ai/claude-code` shipped with a 57MB source map file (`cli.js.map`). Inside: the full, unobfuscated TypeScript source -- 512,000 lines across 1,900+ files.
+
+The exposed architecture turned out to be a sophisticated system: 43 built-in tools, 4-layer context compression, multi-agent orchestration, MCP protocol integration, a permission DSL, and hidden features like BUDDY AI pet, KAIROS daemon mode, and Auto-Dream memory consolidation. See the full analysis at [verified-skill.com/insights/claude-code](https://verified-skill.com/insights/claude-code).
+
+This sparked the CCX project -- clean-room implementations in multiple languages. ccx-dotnet fills a gap that nothing else does: there are zero AI coding CLIs built for the .NET ecosystem. Enterprise .NET shops running C#, F#, and Azure pipelines have no native option. This implementation brings AOT-compiled performance, Spectre.Console TUI, and the full Claude tool system to the platform where a huge portion of enterprise code actually lives.
+
+[instructkr/claw-code](https://github.com/instructkr/claw-code) (41.7k stars) took a Python metadata/harness approach. CCX takes a fundamentally different path -- full working implementations with real tool execution, native TUI, and comprehensive test suites in each target language.
+
+- Original tweet: https://x.com/Fried_rice/status/2038894956459290963
+- Architecture analysis: https://verified-skill.com/insights/claude-code
+- CCX umbrella: https://github.com/anton-abyzov/ccx
+
 ## Why .NET?
 
 - **AOT single binary** (~30-50MB) via `dotnet publish --self-contained -p:PublishAot=true`
