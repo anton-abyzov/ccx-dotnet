@@ -1,6 +1,6 @@
 # ccx-dotnet
 
-A .NET implementation of an AI coding assistant CLI. Cross-platform AOT-compiled binary for enterprise environments. The only AI coding CLI built on .NET.
+AI coding assistant CLI in .NET 10. 7.9MB AOT binary, 11 tools, Spectre.Console TUI. The only AI coding CLI built on .NET, targeting enterprise environments.
 
 ## Why CCX?
 
@@ -8,18 +8,55 @@ CCX is a family of clean-room AI coding assistant implementations, built as open
 
 ccx-dotnet fills a gap that nothing else does: there are zero AI coding CLIs built for the .NET ecosystem. Enterprise .NET shops running C#, F#, and Azure pipelines have no native option. This implementation brings AOT-compiled performance, Spectre.Console TUI, and the full Claude tool system to the platform where a huge portion of enterprise code actually lives.
 
-[instructkr/claw-code](https://github.com/instructkr/claw-code) (41.7k stars) took a Python metadata/harness approach. CCX takes a fundamentally different path -- full working implementations with real tool execution, native TUI, and comprehensive test suites in each target language.
+Unlike [instructkr/claw-code](https://github.com/instructkr/claw-code) (41.7k stars), which wraps Claude Code in a Python harness, ccx-dotnet is a ground-up .NET implementation with real tool execution, DI-based architecture, and a comprehensive test suite.
 
 - Architecture analysis: https://verified-skill.com/insights/claude-code
 - CCX umbrella: https://github.com/anton-abyzov/ccx
 
+## Quick Start
+
+```bash
+git clone https://github.com/anton-abyzov/ccx-dotnet.git
+cd ccx-dotnet
+dotnet build
+export ANTHROPIC_API_KEY="your-key-here"
+dotnet run --project src/Ccx.Cli
+```
+
+## Features
+
+- **11 built-in tools** -- Bash, FileRead, FileEdit, FileWrite, Glob, Grep, Agent, WebFetch, NotebookEdit, TodoRead, TodoWrite
+- **Slash commands with autocomplete** -- `/help`, `/compact`, `/clear`, `/model`, `/memory`, `/skills`
+- **Streaming responses** -- HttpClient SSE streaming with IAsyncEnumerable and real-time tool_use handling
+- **Markdown rendering** -- Markdig with custom Spectre.Console renderer
+- **Skill discovery** -- loads and executes markdown-based skills
+- **Task-based agent spawning** -- CancellationToken and Channel for inter-agent IPC
+- **4-layer context compression** -- with IAsyncEnumerable streaming
+- **MCP protocol** -- JSON-RPC over stdio/SSE
+- **Permission system** -- rule-based with interactive approval flows
+- **Memory persistence** -- user, project, feedback, and reference memory types
+- **AOT-compatible** -- single binary via `dotnet publish -p:PublishAot=true`
+
+## Slash Commands
+
+| Command | Description |
+|---------|-------------|
+| `/help` | Show available commands |
+| `/compact` | Compress conversation context |
+| `/clear` | Clear conversation history |
+| `/model` | Switch Claude model |
+| `/memory` | View/manage memory entries |
+| `/skills` | List available skills |
+| `/config` | Show current configuration |
+
 ## Why .NET?
 
-- **AOT single binary** (~30-50MB) via `dotnet publish --self-contained -p:PublishAot=true`
+- **7.9MB AOT binary** via `dotnet publish --self-contained -p:PublishAot=true`
 - **Strong async/await** -- Task, IAsyncEnumerable for streaming, Channel for agent communication
 - **Enterprise appeal** -- .NET shops are underserved by AI CLI tools
-- **Spectre.Console** -- Rich terminal rendering with tables, trees, panels, syntax highlighting
+- **Spectre.Console** -- rich terminal rendering with tables, trees, panels, syntax highlighting
 - **Uncontested niche** -- zero AI coding assistants built on .NET
+- **DI-first** -- Microsoft.Extensions.DependencyInjection for clean architecture
 
 ## Architecture
 
@@ -52,10 +89,10 @@ Inspired by architecture analysis of Claude Code:
 
 ```
 src/
-  ClaudeCode.Cli/              # CLI entry point (AOT-compatible)
-  ClaudeCode.Core/             # Core agent loop and query engine
-  ClaudeCode.Api/              # Anthropic API client (streaming, tool_use)
-  ClaudeCode.Tools/            # Tool interface and built-in implementations
+  Ccx.Cli/              # CLI entry point (AOT-compatible)
+  Ccx.Core/             # Core agent loop and query engine
+  Ccx.Api/              # Anthropic API client (streaming, tool_use)
+  Ccx.Tools/            # Tool interface and built-in implementations
     Tools/
       BashTool.cs
       FileReadTool.cs
@@ -65,30 +102,24 @@ src/
       GrepTool.cs
       AgentTool.cs
       WebFetchTool.cs
-  ClaudeCode.Permissions/      # Permission DSL, rules, interactive prompts
-  ClaudeCode.Compact/          # 4-layer context compression
-  ClaudeCode.Memory/           # Memory system (user, project, feedback, reference)
-  ClaudeCode.Skills/           # Skill loading and execution
-  ClaudeCode.Mcp/              # MCP protocol client
-  ClaudeCode.Config/           # Settings cascade, CLAUDE.md parsing
-  ClaudeCode.Tui/              # Spectre.Console UI components
+  Ccx.Permissions/      # Permission DSL, rules, interactive prompts
+  Ccx.Compact/          # 4-layer context compression
+  Ccx.Memory/           # Memory system (user, project, feedback, reference)
+  Ccx.Skills/           # Skill loading and execution
+  Ccx.Mcp/              # MCP protocol client
+  Ccx.Config/           # Settings cascade, CLAUDE.md parsing
+  Ccx.Tui/              # Spectre.Console UI components
 tests/
-  ClaudeCode.Core.Tests/
-  ClaudeCode.Api.Tests/
-  ClaudeCode.Tools.Tests/
-  ClaudeCode.Permissions.Tests/
-  ClaudeCode.Integration.Tests/
-```
-
-## Getting Started
-
-```sh
-dotnet tool install -g ccx-dotnet
+  Ccx.Core.Tests/
+  Ccx.Api.Tests/
+  Ccx.Tools.Tests/
+  Ccx.Permissions.Tests/
+  Ccx.Integration.Tests/
 ```
 
 ## Development
 
-```sh
+```bash
 git clone https://github.com/anton-abyzov/ccx-dotnet.git
 cd ccx-dotnet
 dotnet build
