@@ -20,6 +20,7 @@ var keyVault = new KeyVaultProvider();
 string? apiKey = null;
 string? cliModel = null;
 var showCost = false;
+var dangerouslySkipPermissions = true; // bypass by default, like Go/Rust
 
 for (var i = 0; i < args.Length; i++)
 {
@@ -31,10 +32,12 @@ for (var i = 0; i < args.Length; i++)
             AnsiConsole.MarkupLine("[bold]Usage:[/] ccx [[options]]");
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("[bold]Options:[/]");
-            AnsiConsole.MarkupLine("  --model <model>    Model to use (default: from settings)");
-            AnsiConsole.MarkupLine("  --api-key <key>    Anthropic API key");
-            AnsiConsole.MarkupLine("  --cost             Show cost summary on exit");
-            AnsiConsole.MarkupLine("  -h, --help         Show this help");
+            AnsiConsole.MarkupLine("  --model <model>                Model to use (default: from settings)");
+            AnsiConsole.MarkupLine("  --api-key <key>                Anthropic API key");
+            AnsiConsole.MarkupLine("  --cost                         Show cost summary on exit");
+            AnsiConsole.MarkupLine("  --dangerously-skip-permissions Skip all permission prompts (default)");
+            AnsiConsole.MarkupLine("  --permission-mode default      Prompt for permissions");
+            AnsiConsole.MarkupLine("  -h, --help                     Show this help");
             return 0;
         case "--model" when i + 1 < args.Length:
             cliModel = args[++i];
@@ -44,6 +47,14 @@ for (var i = 0; i < args.Length; i++)
             break;
         case "--cost":
             showCost = true;
+            break;
+        case "--dangerously-skip-permissions":
+            dangerouslySkipPermissions = true;
+            break;
+        case "--permission-mode" when i + 1 < args.Length:
+            var mode = args[++i];
+            if (mode == "default")
+                dangerouslySkipPermissions = false;
             break;
     }
 }
@@ -105,10 +116,18 @@ tools.Register(new AgentTool(new AgentSpawner(client)));
 
 // --- Permission system ---
 var classifier = new PermissionClassifier();
-foreach (var pattern in cascade.GetAllowedTools())
-    classifier.AddRule(new PermissionRule { ToolPattern = pattern, Action = PermissionAction.Allow });
-foreach (var pattern in cascade.GetDeniedTools())
-    classifier.AddRule(new PermissionRule { ToolPattern = pattern, Action = PermissionAction.Deny });
+if (dangerouslySkipPermissions)
+{
+    // Bypass: allow all tools without prompting
+    classifier.AddRule(new PermissionRule { ToolPattern = "*", Action = PermissionAction.Allow });
+}
+else
+{
+    foreach (var pattern in cascade.GetAllowedTools())
+        classifier.AddRule(new PermissionRule { ToolPattern = pattern, Action = PermissionAction.Allow });
+    foreach (var pattern in cascade.GetDeniedTools())
+        classifier.AddRule(new PermissionRule { ToolPattern = pattern, Action = PermissionAction.Deny });
+}
 
 // --- Hooks ---
 var hookRunner = new HookRunner();
@@ -143,6 +162,14 @@ InlineRenderer.RenderWelcome(AnsiConsole.Console, model, auth.DisplayName, Direc
 InlineRenderer.RenderFooter(AnsiConsole.Console);
 AnsiConsole.WriteLine();
 
+// --- Command history and readline ---
+var history = new CommandHistory();
+var builtinCmds = new[] { "/help", "/exit", "/quit", "/clear", "/cost", "/model", "/version", "/tools" };
+var allSlashCmds = builtinCmds
+    .Concat(discoveredSkills.Select(s => "/" + s.Name))
+    .ToList();
+var readline = new ReadLineEditor(history, allSlashCmds);
+
 var messages = new List<Message>();
 using var cts = new CancellationTokenSource();
 
@@ -155,10 +182,12 @@ Console.CancelKeyPress += (_, e) =>
 while (!cts.IsCancellationRequested)
 {
     InlineRenderer.RenderPrompt(AnsiConsole.Console);
-    var input = Console.ReadLine();
+    var input = readline.ReadLine();
 
     if (input is null or "exit" or "quit") break;
     if (string.IsNullOrWhiteSpace(input)) continue;
+
+    history.Add(input);
 
     // Handle slash commands
     if (input.StartsWith('/'))

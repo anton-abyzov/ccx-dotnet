@@ -29,10 +29,8 @@ public sealed class ChatRenderer
 
     public void RenderToolCall(string toolName, string? summary = null)
     {
-        var desc = string.IsNullOrEmpty(summary)
-            ? Markup.Escape(toolName)
-            : $"{Markup.Escape(toolName)}: {Markup.Escape(summary)}";
-        _console.MarkupLine($"  [yellow]⚙ {desc}[/]");
+        var args = string.IsNullOrEmpty(summary) ? "" : Markup.Escape(summary);
+        _console.MarkupLine($"  [green]●[/] [bold]{Markup.Escape(toolName)}[/]({args})");
     }
 
     public void RenderToolResult(string toolName, bool isError, string? preview = null)
