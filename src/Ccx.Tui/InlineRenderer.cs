@@ -67,8 +67,14 @@ public static class InlineRenderer
 
     public static void RenderToolOutput(IAnsiConsole console, string output)
     {
-        foreach (var line in output.Split('\n').Take(10))
+        var lines = output.Split('\n');
+        const int maxLines = 5;
+
+        foreach (var line in lines.Take(maxLines))
             console.MarkupLine($"  [dim]\u2514 {Markup.Escape(line)}[/]");
+
+        if (lines.Length > maxLines)
+            console.MarkupLine($"  [dim]\u2026 {lines.Length - maxLines} more lines[/]");
     }
 
     public static void RenderAssistantText(IAnsiConsole console, string text)

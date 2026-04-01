@@ -117,10 +117,12 @@ var claudeMd = ClaudeMdDiscovery.LoadCombined();
 var systemPrompt = PromptBuilder.BuildSystemPrompt(tools.All, claudeMd);
 
 // --- Main loop ---
-var engine = new QueryEngine(client, tools, text => AnsiConsole.Write(new Markup(Markup.Escape(text))), systemPrompt);
+var engine = new QueryEngine(client, tools, systemPrompt: systemPrompt);
 
 // Show inline welcome panel (scrolls naturally, no full-screen TUI)
 InlineRenderer.RenderWelcome(AnsiConsole.Console, model, "API Key", Directory.GetCurrentDirectory(), tools.Count);
+InlineRenderer.RenderFooter(AnsiConsole.Console);
+AnsiConsole.WriteLine();
 
 var messages = new List<Message>();
 using var cts = new CancellationTokenSource();
@@ -136,12 +138,65 @@ while (!cts.IsCancellationRequested)
     InlineRenderer.RenderPrompt(AnsiConsole.Console);
     var input = Console.ReadLine();
 
-    if (input is null or "/exit" or "exit" or "quit") break;
+    if (input is null or "exit" or "quit") break;
     if (string.IsNullOrWhiteSpace(input)) continue;
 
-    // Handle slash commands (skills)
+    // Handle slash commands
     if (input.StartsWith('/'))
     {
+        var cmd = input.Split(' ', 2)[0].ToLowerInvariant();
+
+        if (cmd is "/exit" or "/quit")
+            break;
+
+        if (cmd is "/help")
+        {
+            AnsiConsole.MarkupLine("[bold]Commands:[/]");
+            AnsiConsole.MarkupLine("  [green]/help[/]     Show this help");
+            AnsiConsole.MarkupLine("  [green]/exit[/]     Quit");
+            AnsiConsole.MarkupLine("  [green]/clear[/]    Clear screen");
+            AnsiConsole.MarkupLine("  [green]/cost[/]     Token usage summary");
+            AnsiConsole.MarkupLine("  [green]/model[/]    Current model");
+            AnsiConsole.MarkupLine("  [green]/version[/]  Version info");
+            AnsiConsole.MarkupLine("  [green]/tools[/]    List available tools");
+            AnsiConsole.WriteLine();
+            continue;
+        }
+
+        if (cmd is "/clear")
+        {
+            AnsiConsole.Clear();
+            continue;
+        }
+
+        if (cmd is "/cost")
+        {
+            AnsiConsole.MarkupLine($"[dim]{Markup.Escape(costTracker.GetSummary())}[/]");
+            continue;
+        }
+
+        if (cmd is "/model")
+        {
+            AnsiConsole.MarkupLine($"  Model: [green]{Markup.Escape(model)}[/]");
+            continue;
+        }
+
+        if (cmd is "/version")
+        {
+            AnsiConsole.MarkupLine("  [bold]ccx[/] v0.1.0 (.NET 10, AOT)");
+            continue;
+        }
+
+        if (cmd is "/tools")
+        {
+            AnsiConsole.MarkupLine($"[bold]Registered tools ({tools.Count}):[/]");
+            foreach (var t in tools.All)
+                AnsiConsole.MarkupLine($"  [green]\u2022[/] {Markup.Escape(t.Name)}");
+            AnsiConsole.WriteLine();
+            continue;
+        }
+
+        // Non-builtin slash command -> try skills
         var parts = input[1..].Split(' ', 2);
         var result = skillExecutor.Execute(parts[0], parts.Length > 1 ? parts[1] : null);
         if (result.Found)
@@ -151,7 +206,7 @@ while (!cts.IsCancellationRequested)
         }
         else
         {
-            AnsiConsole.MarkupLine($"[yellow]{Markup.Escape(result.ErrorMessage ?? "Unknown skill")}[/]");
+            AnsiConsole.MarkupLine($"[yellow]{Markup.Escape(result.ErrorMessage ?? "Unknown command")}[/]");
             continue;
         }
     }
@@ -163,15 +218,28 @@ while (!cts.IsCancellationRequested)
 
     try
     {
-        var response = await statusDisplay.WithSpinnerAsync("Thinking...",
+        var response = await statusDisplay.WithSpinnerAsync("Working...",
             () => engine.RunAsync(messages, cts.Token));
 
         messages.Add(Message.Assistant(response));
 
-        // Track cost from response text length (estimate)
+        // Render response with markdown formatting
         var responseText = string.Join("", response
             .Where(b => b.Type == "text" && b.Text is not null)
             .Select(b => b.Text));
+
+        if (!string.IsNullOrEmpty(responseText))
+        {
+            try
+            {
+                AnsiConsole.MarkupLine(MarkdownRenderer.ToMarkup(responseText));
+            }
+            catch
+            {
+                AnsiConsole.WriteLine(responseText);
+            }
+        }
+
         costTracker.Record(model,
             Ccx.Compact.TokenEstimator.Estimate(input),
             Ccx.Compact.TokenEstimator.Estimate(responseText ?? ""));
