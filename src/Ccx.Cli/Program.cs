@@ -165,7 +165,8 @@ var claudeMd = ClaudeMdDiscovery.LoadCombined();
 var systemPrompt = PromptBuilder.BuildSystemPrompt(tools.All, claudeMd);
 
 // --- Main loop ---
-var engine = new QueryEngine(client, tools, systemPrompt: systemPrompt);
+var engine = new QueryEngine(client, tools, systemPrompt: systemPrompt,
+    onThinkingDelta: text => AnsiConsole.Write(new Text(text, new Style(decoration: Decoration.Dim | Decoration.Italic))));
 
 // Show inline welcome panel (scrolls naturally, no full-screen TUI)
 InlineRenderer.RenderWelcome(AnsiConsole.Console, model, auth.DisplayName, Directory.GetCurrentDirectory(), tools.Count);
@@ -174,7 +175,7 @@ AnsiConsole.WriteLine();
 
 // --- Command history and readline ---
 var history = new CommandHistory();
-var builtinCmds = new[] { "/help", "/exit", "/quit", "/clear", "/cost", "/model", "/version", "/tools", "/login" };
+var builtinCmds = new[] { "/help", "/exit", "/quit", "/clear", "/cost", "/model", "/version", "/tools", "/login", "/init", "/config", "/status", "/doctor", "/compact" };
 var allSlashCmds = builtinCmds
     .Concat(discoveredSkills.Select(s => "/" + s.Name))
     .ToList();
@@ -218,6 +219,11 @@ while (!cts.IsCancellationRequested)
             AnsiConsole.MarkupLine("  [green]/version[/]  Version info");
             AnsiConsole.MarkupLine("  [green]/tools[/]    List available tools");
             AnsiConsole.MarkupLine("  [green]/login[/]    Log in via OAuth");
+            AnsiConsole.MarkupLine("  [green]/init[/]     Create .claude/ directory");
+            AnsiConsole.MarkupLine("  [green]/config[/]   Print current configuration");
+            AnsiConsole.MarkupLine("  [green]/status[/]   Print session status");
+            AnsiConsole.MarkupLine("  [green]/doctor[/]   Run diagnostics");
+            AnsiConsole.MarkupLine("  [green]/compact[/]  Compress conversation context");
 
             if (discoveredSkills.Count > 0)
             {
@@ -282,6 +288,65 @@ while (!cts.IsCancellationRequested)
             continue;
         }
 
+        if (cmd is "/init")
+        {
+            var claudeDir = Path.Combine(Directory.GetCurrentDirectory(), ".claude");
+            if (!Directory.Exists(claudeDir))
+            {
+                Directory.CreateDirectory(claudeDir);
+                AnsiConsole.MarkupLine("[green]Created .claude/ directory[/]");
+            }
+            else
+                AnsiConsole.MarkupLine("[yellow].claude/ already exists[/]");
+            continue;
+        }
+
+        if (cmd is "/config")
+        {
+            AnsiConsole.MarkupLine($"[bold]Model:[/] {Markup.Escape(model)}");
+            AnsiConsole.MarkupLine($"[bold]API:[/] https://api.anthropic.com");
+            AnsiConsole.MarkupLine($"[bold]Permission mode:[/] {(dangerouslySkipPermissions ? "skip" : "default")}");
+            AnsiConsole.MarkupLine($"[bold]CWD:[/] {Markup.Escape(Directory.GetCurrentDirectory())}");
+            continue;
+        }
+
+        if (cmd is "/status")
+        {
+            AnsiConsole.MarkupLine($"[bold]Model:[/] {Markup.Escape(model)}");
+            AnsiConsole.MarkupLine($"[bold]Tools:[/] {tools.All.Count()} registered");
+            AnsiConsole.MarkupLine($"[bold]Tokens:[/] {costTracker.TotalInputTokens} in / {costTracker.TotalOutputTokens} out");
+            AnsiConsole.MarkupLine($"[bold]CWD:[/] {Markup.Escape(Directory.GetCurrentDirectory())}");
+            continue;
+        }
+
+        if (cmd is "/doctor")
+        {
+            AnsiConsole.MarkupLine(string.IsNullOrEmpty(auth.Token) ? "[red]x API key not set[/]" : "[green]+ API key configured[/]");
+            AnsiConsole.MarkupLine($"[green]+ {tools.All.Count()} tools loaded[/]");
+            AnsiConsole.MarkupLine($"[green]+ .NET {Environment.Version}[/]");
+            continue;
+        }
+
+        if (cmd is "/compact")
+        {
+            var before = messages.Count;
+            if (before > 4)
+            {
+                // Keep system context (first 2) and recent exchange (last 2)
+                var compacted = new List<Message>();
+                compacted.AddRange(messages.Take(2));
+                compacted.Add(Message.User("[earlier context compacted]"));
+                compacted.Add(Message.Assistant([Ccx.Api.Models.ContentBlock.CreateText("[context compacted]")]));
+                compacted.AddRange(messages.TakeLast(2));
+                messages.Clear();
+                messages.AddRange(compacted);
+                AnsiConsole.MarkupLine($"[dim]Compacted {before} messages to {messages.Count}[/]");
+            }
+            else
+                AnsiConsole.MarkupLine("[dim]Conversation too short to compact[/]");
+            continue;
+        }
+
         // Non-builtin slash command -> try skills
         var parts = input[1..].Split(' ', 2);
         var skillCmd = parts[0];
@@ -331,6 +396,12 @@ while (!cts.IsCancellationRequested)
 
         messages.Add(Message.Assistant(response));
 
+        // Render thinking blocks in dim italic
+        foreach (var block in response.Where(b => b.Type == "thinking" && b.Thinking is not null))
+        {
+            chatRenderer.RenderThinking(block.Thinking!);
+        }
+
         // Render response with markdown formatting
         var responseText = string.Join("", response
             .Where(b => b.Type == "text" && b.Text is not null)
@@ -338,13 +409,23 @@ while (!cts.IsCancellationRequested)
 
         if (!string.IsNullOrEmpty(responseText))
         {
-            try
+            // Extract <think>...</think> tags and route through thinking display
+            var (thinkContent, cleanedText) = ThinkTagParser.Extract(responseText);
+            if (!string.IsNullOrEmpty(thinkContent))
+                chatRenderer.RenderThinking(thinkContent);
+
+            responseText = cleanedText;
+
+            if (!string.IsNullOrEmpty(responseText))
             {
-                AnsiConsole.MarkupLine(MarkdownRenderer.ToMarkup(responseText));
-            }
-            catch
-            {
-                AnsiConsole.WriteLine(responseText);
+                try
+                {
+                    AnsiConsole.MarkupLine(MarkdownRenderer.ToMarkup(responseText));
+                }
+                catch
+                {
+                    AnsiConsole.WriteLine(responseText);
+                }
             }
         }
 

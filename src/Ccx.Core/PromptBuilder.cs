@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using Ccx.Tools;
 
 namespace Ccx.Core;
@@ -27,6 +28,11 @@ public static class PromptBuilder
             {
                 sb.AppendLine($"## {tool.Name}");
                 sb.AppendLine(tool.Description);
+                sb.AppendLine();
+                sb.AppendLine("Input Schema:");
+                sb.AppendLine("```json");
+                sb.AppendLine(JsonSerializer.Serialize(tool.InputSchema, new JsonSerializerOptions { WriteIndented = true }));
+                sb.AppendLine("```");
                 sb.AppendLine();
             }
         }

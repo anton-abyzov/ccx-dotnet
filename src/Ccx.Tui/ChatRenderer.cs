@@ -20,6 +20,11 @@ public sealed class ChatRenderer
         _console.WriteLine();
     }
 
+    public void RenderThinking(string text)
+    {
+        _console.MarkupLine($"[dim italic]{Markup.Escape(text)}[/]");
+    }
+
     public void RenderAssistantMessage(string text)
     {
         var rendered = MarkdownRenderer.ToMarkup(text);

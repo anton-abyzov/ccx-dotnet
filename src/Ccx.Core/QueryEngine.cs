@@ -14,14 +14,16 @@ public sealed class QueryEngine
     private readonly IClaudeClient _client;
     private readonly ToolRegistry _tools;
     private readonly Action<string>? _onTextDelta;
+    private readonly Action<string>? _onThinkingDelta;
     private readonly string? _systemPrompt;
     private readonly int _maxTurns;
 
-    public QueryEngine(IClaudeClient client, ToolRegistry tools, Action<string>? onTextDelta = null, string? systemPrompt = null, int? maxTurns = null)
+    public QueryEngine(IClaudeClient client, ToolRegistry tools, Action<string>? onTextDelta = null, string? systemPrompt = null, int? maxTurns = null, Action<string>? onThinkingDelta = null)
     {
         _client = client;
         _tools = tools;
         _onTextDelta = onTextDelta;
+        _onThinkingDelta = onThinkingDelta;
         _systemPrompt = systemPrompt;
         _maxTurns = maxTurns ?? DefaultMaxTurns;
     }
@@ -96,6 +98,7 @@ public sealed class QueryEngine
                             break;
                         case "thinking_delta":
                             textBuf.Append(evt.Delta.Thinking);
+                            _onThinkingDelta?.Invoke(evt.Delta.Thinking ?? "");
                             break;
                     }
                     break;
@@ -145,22 +148,20 @@ public sealed class QueryEngine
     private async Task<List<ContentBlock>> ExecuteToolsAsync(
         IEnumerable<ContentBlock> toolUseBlocks, CancellationToken ct)
     {
-        var results = new List<ContentBlock>();
         var ctx = new ToolContext { WorkingDirectory = Directory.GetCurrentDirectory() };
 
-        foreach (var block in toolUseBlocks)
+        var blocks = toolUseBlocks.ToList();
+        var tasks = blocks.Select(async block =>
         {
             var tool = _tools.FindByName(block.Name!);
             if (tool is null)
-            {
-                results.Add(ContentBlock.CreateToolResult(block.Id!, $"Tool '{block.Name}' not found", isError: true));
-                continue;
-            }
+                return ContentBlock.CreateToolResult(block.Id!, $"Tool '{block.Name}' not found", isError: true);
 
             var result = await tool.ExecuteAsync(block.Input ?? default, ctx, ct);
-            results.Add(ContentBlock.CreateToolResult(block.Id!, result.Output, result.IsError));
-        }
+            return ContentBlock.CreateToolResult(block.Id!, result.Output, result.IsError);
+        }).ToArray();
 
-        return results;
+        var results = await Task.WhenAll(tasks);
+        return results.ToList();
     }
 }
