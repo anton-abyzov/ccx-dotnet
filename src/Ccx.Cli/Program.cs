@@ -109,6 +109,7 @@ var agentManager = new AgentManager(client, tools);
 // --- Skill system ---
 var skillLoader = new SkillLoader();
 var skillExecutor = new SkillExecutor(skillLoader);
+var discoveredSkills = SkillDiscovery.DiscoverAll();
 
 // --- Load CLAUDE.md context ---
 var claudeMd = ClaudeMdDiscovery.LoadCombined();
@@ -159,6 +160,20 @@ while (!cts.IsCancellationRequested)
             AnsiConsole.MarkupLine("  [green]/model[/]    Current model");
             AnsiConsole.MarkupLine("  [green]/version[/]  Version info");
             AnsiConsole.MarkupLine("  [green]/tools[/]    List available tools");
+
+            if (discoveredSkills.Count > 0)
+            {
+                AnsiConsole.WriteLine();
+                AnsiConsole.MarkupLine($"[bold]Skills ({discoveredSkills.Count}):[/]");
+                foreach (var (name, desc) in discoveredSkills)
+                {
+                    if (!string.IsNullOrEmpty(desc))
+                        AnsiConsole.MarkupLine($"  [cyan]/{Markup.Escape(name)}[/]  {Markup.Escape(desc)}");
+                    else
+                        AnsiConsole.MarkupLine($"  [cyan]/{Markup.Escape(name)}[/]");
+                }
+            }
+
             AnsiConsole.WriteLine();
             continue;
         }
@@ -198,7 +213,8 @@ while (!cts.IsCancellationRequested)
 
         // Non-builtin slash command -> try skills
         var parts = input[1..].Split(' ', 2);
-        var result = skillExecutor.Execute(parts[0], parts.Length > 1 ? parts[1] : null);
+        var skillCmd = parts[0];
+        var result = skillExecutor.Execute(skillCmd, parts.Length > 1 ? parts[1] : null);
         if (result.Found)
         {
             AnsiConsole.MarkupLine($"[dim]Loaded skill: {Markup.Escape(result.SkillName)}[/]");
@@ -206,7 +222,28 @@ while (!cts.IsCancellationRequested)
         }
         else
         {
-            AnsiConsole.MarkupLine($"[yellow]{Markup.Escape(result.ErrorMessage ?? "Unknown command")}[/]");
+            // Check discovered skills
+            var match = discoveredSkills.FirstOrDefault(s =>
+                s.Name.Equals(skillCmd, StringComparison.OrdinalIgnoreCase));
+            if (match != default)
+            {
+                // Skill found in discovery but not loadable via executor — inform user
+                AnsiConsole.MarkupLine($"[yellow]Skill '{Markup.Escape(skillCmd)}' found but could not be loaded.[/]");
+                continue;
+            }
+
+            // Suggest similar commands
+            var builtins = new[] { "help", "exit", "quit", "clear", "cost", "model", "version", "tools" };
+            var allNames = builtins.Concat(discoveredSkills.Select(s => s.Name)).ToList();
+            var suggestions = allNames
+                .Where(n => n.Contains(skillCmd, StringComparison.OrdinalIgnoreCase)
+                    || skillCmd.Contains(n, StringComparison.OrdinalIgnoreCase))
+                .Take(5)
+                .ToList();
+
+            AnsiConsole.MarkupLine($"[yellow]Unknown command: /{Markup.Escape(skillCmd)}[/]");
+            if (suggestions.Count > 0)
+                AnsiConsole.MarkupLine($"[dim]Did you mean: {string.Join(", ", suggestions.Select(s => "/" + s))}?[/]");
             continue;
         }
     }
