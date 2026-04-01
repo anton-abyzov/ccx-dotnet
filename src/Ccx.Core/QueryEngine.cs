@@ -9,7 +9,7 @@ namespace Ccx.Core;
 public sealed class QueryEngine
 {
     public const int DefaultMaxTurns = 200;
-    public const int AgentMaxTurns = 30;
+    public const int AgentMaxTurns = 100;
 
     private readonly IClaudeClient _client;
     private readonly ToolRegistry _tools;
