@@ -42,8 +42,8 @@ public static class SkillDiscovery
             var content = File.ReadAllText(filePath);
             var (metadata, _) = YamlFrontmatter.Parse(content);
 
-            var name = metadata.GetValueOrDefault("name")
-                ?? Path.GetFileNameWithoutExtension(filePath);
+            var name = DeriveName(filePath);
+            if (string.IsNullOrEmpty(name)) return;
 
             if (seen.Add(name))
             {
@@ -55,6 +55,38 @@ public static class SkillDiscovery
         {
             // Skip unreadable files
         }
+    }
+
+    internal static string? DeriveName(string filePath)
+    {
+        var fileName = Path.GetFileName(filePath);
+        string skillName;
+
+        if (fileName.Equals("SKILL.md", StringComparison.OrdinalIgnoreCase))
+            skillName = Path.GetFileName(Path.GetDirectoryName(filePath)!);
+        else
+            skillName = Path.GetFileNameWithoutExtension(filePath);
+
+        if (string.IsNullOrEmpty(skillName)) return null;
+
+        var sep = Path.DirectorySeparatorChar;
+        var altSep = Path.AltDirectorySeparatorChar;
+        var parts = filePath.Split(sep, altSep);
+
+        for (var i = 0; i < parts.Length - 2; i++)
+        {
+            if (!parts[i].Equals("plugins", StringComparison.OrdinalIgnoreCase)) continue;
+            var pluginName = parts[i + 1];
+            for (var j = i + 2; j < parts.Length; j++)
+            {
+                if (!parts[j].Equals("skills", StringComparison.OrdinalIgnoreCase)) continue;
+                var prefix = pluginName.Equals("specweave", StringComparison.OrdinalIgnoreCase)
+                    ? "sw" : pluginName;
+                return $"{prefix}:{skillName}";
+            }
+        }
+
+        return skillName;
     }
 
     private static List<string> GetSearchPaths()
