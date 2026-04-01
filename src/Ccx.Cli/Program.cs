@@ -114,6 +114,16 @@ tools.Register(new TodoWriteTool());
 tools.Register(new NotebookEditTool());
 tools.Register(new AgentTool(new AgentSpawner(client)));
 
+// Register meta-tools for skill orchestration
+tools.Register(new TeamCreateTool());
+tools.Register(new TeamDeleteTool());
+tools.Register(new SendMessageTool());
+tools.Register(new TaskCreateTool());
+tools.Register(new TaskUpdateTool());
+tools.Register(new TaskListTool());
+tools.Register(new EnterPlanModeTool());
+tools.Register(new ExitPlanModeTool());
+
 // --- Permission system ---
 var classifier = new PermissionClassifier();
 if (dangerouslySkipPermissions)
