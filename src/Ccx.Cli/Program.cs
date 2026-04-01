@@ -119,11 +119,8 @@ var systemPrompt = PromptBuilder.BuildSystemPrompt(tools.All, claudeMd);
 // --- Main loop ---
 var engine = new QueryEngine(client, tools, text => AnsiConsole.Write(new Markup(Markup.Escape(text))), systemPrompt);
 
-AnsiConsole.MarkupLine("[bold]ccx[/] — Claude Code for .NET");
-AnsiConsole.MarkupLine($"Model: [cyan]{Markup.Escape(model)}[/] | Tools: [cyan]{tools.Count}[/]");
-if (!string.IsNullOrEmpty(claudeMd))
-    AnsiConsole.MarkupLine("[dim]CLAUDE.md loaded[/]");
-AnsiConsole.WriteLine();
+// Show Claude Code-style welcome screen
+WelcomeScreen.Render(AnsiConsole.Console, model, Directory.GetCurrentDirectory(), tools.Count);
 
 var messages = new List<Message>();
 using var cts = new CancellationTokenSource();
@@ -134,14 +131,12 @@ Console.CancelKeyPress += (_, e) =>
     cts.Cancel();
 };
 
-// System prompt is now injected via QueryEngine constructor
-
 while (!cts.IsCancellationRequested)
 {
-    AnsiConsole.Markup("[green]> [/]");
+    AnsiConsole.Markup("[#cc7850 bold]❯[/] ");
     var input = Console.ReadLine();
 
-    if (input is null or "exit" or "quit") break;
+    if (input is null or "/exit" or "exit" or "quit") break;
     if (string.IsNullOrWhiteSpace(input)) continue;
 
     // Handle slash commands (skills)
@@ -198,7 +193,8 @@ while (!cts.IsCancellationRequested)
     }
 }
 
-// Show cost summary
+// Show footer and cost summary
+chatRenderer.RenderFooter();
 if (showCost || costTracker.RequestCount > 0)
 {
     AnsiConsole.WriteLine();
