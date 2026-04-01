@@ -119,8 +119,8 @@ var systemPrompt = PromptBuilder.BuildSystemPrompt(tools.All, claudeMd);
 // --- Main loop ---
 var engine = new QueryEngine(client, tools, text => AnsiConsole.Write(new Markup(Markup.Escape(text))), systemPrompt);
 
-// Show Claude Code-style welcome screen
-WelcomeScreen.Render(AnsiConsole.Console, model, Directory.GetCurrentDirectory(), tools.Count);
+// Show inline welcome panel (scrolls naturally, no full-screen TUI)
+InlineRenderer.RenderWelcome(AnsiConsole.Console, model, "API Key", Directory.GetCurrentDirectory(), tools.Count);
 
 var messages = new List<Message>();
 using var cts = new CancellationTokenSource();
@@ -133,7 +133,7 @@ Console.CancelKeyPress += (_, e) =>
 
 while (!cts.IsCancellationRequested)
 {
-    AnsiConsole.Markup("[#cc7850 bold]❯[/] ");
+    InlineRenderer.RenderPrompt(AnsiConsole.Console);
     var input = Console.ReadLine();
 
     if (input is null or "/exit" or "exit" or "quit") break;
@@ -194,7 +194,7 @@ while (!cts.IsCancellationRequested)
 }
 
 // Show footer and cost summary
-chatRenderer.RenderFooter();
+InlineRenderer.RenderFooter(AnsiConsole.Console);
 if (showCost || costTracker.RequestCount > 0)
 {
     AnsiConsole.WriteLine();
