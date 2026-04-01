@@ -28,7 +28,7 @@ public sealed class AgentSpawner : IAgentSpawner
         tools.Register(new GlobTool());
         tools.Register(new GrepTool());
 
-        var engine = new QueryEngine(_client, tools);
+        var engine = new QueryEngine(_client, tools, maxTurns: QueryEngine.AgentMaxTurns);
         var messages = new List<Message> { Message.User(prompt) };
 
         var response = await engine.RunAsync(messages, ct);

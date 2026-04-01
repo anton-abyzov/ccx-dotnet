@@ -8,23 +8,30 @@ namespace Ccx.Core;
 
 public sealed class QueryEngine
 {
+    public const int DefaultMaxTurns = 200;
+    public const int AgentMaxTurns = 30;
+
     private readonly IClaudeClient _client;
     private readonly ToolRegistry _tools;
     private readonly Action<string>? _onTextDelta;
     private readonly string? _systemPrompt;
+    private readonly int _maxTurns;
 
-    public QueryEngine(IClaudeClient client, ToolRegistry tools, Action<string>? onTextDelta = null, string? systemPrompt = null)
+    public QueryEngine(IClaudeClient client, ToolRegistry tools, Action<string>? onTextDelta = null, string? systemPrompt = null, int? maxTurns = null)
     {
         _client = client;
         _tools = tools;
         _onTextDelta = onTextDelta;
         _systemPrompt = systemPrompt;
+        _maxTurns = maxTurns ?? DefaultMaxTurns;
     }
 
     public async Task<List<ContentBlock>> RunAsync(List<Message> messages, CancellationToken ct = default)
     {
-        while (true)
+        var turn = 0;
+        while (turn < _maxTurns)
         {
+            turn++;
             ct.ThrowIfCancellationRequested();
 
             var request = new MessageRequest
@@ -49,6 +56,8 @@ public sealed class QueryEngine
 
             messages.Add(Message.User(toolResults));
         }
+
+        return [ContentBlock.CreateText($"Reached maximum turn limit ({_maxTurns}).")];
     }
 
     private async Task<(List<ContentBlock> Blocks, string? StopReason)> StreamResponseAsync(

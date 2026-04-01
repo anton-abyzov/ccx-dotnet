@@ -164,7 +164,7 @@ AnsiConsole.WriteLine();
 
 // --- Command history and readline ---
 var history = new CommandHistory();
-var builtinCmds = new[] { "/help", "/exit", "/quit", "/clear", "/cost", "/model", "/version", "/tools" };
+var builtinCmds = new[] { "/help", "/exit", "/quit", "/clear", "/cost", "/model", "/version", "/tools", "/login" };
 var allSlashCmds = builtinCmds
     .Concat(discoveredSkills.Select(s => "/" + s.Name))
     .ToList();
@@ -207,6 +207,7 @@ while (!cts.IsCancellationRequested)
             AnsiConsole.MarkupLine("  [green]/model[/]    Current model");
             AnsiConsole.MarkupLine("  [green]/version[/]  Version info");
             AnsiConsole.MarkupLine("  [green]/tools[/]    List available tools");
+            AnsiConsole.MarkupLine("  [green]/login[/]    Log in via OAuth");
 
             if (discoveredSkills.Count > 0)
             {
@@ -255,6 +256,19 @@ while (!cts.IsCancellationRequested)
             foreach (var t in tools.All)
                 AnsiConsole.MarkupLine($"  [green]\u2022[/] {Markup.Escape(t.Name)}");
             AnsiConsole.WriteLine();
+            continue;
+        }
+
+        if (cmd is "/login")
+        {
+            try
+            {
+                await OAuthLogin.RunAsync();
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.MarkupLine($"[red]Login failed:[/] {Markup.Escape(ex.Message)}");
+            }
             continue;
         }
 
