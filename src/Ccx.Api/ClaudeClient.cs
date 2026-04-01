@@ -12,14 +12,16 @@ public sealed class ClaudeClient : IClaudeClient
     private const string ApiVersion = "2023-06-01";
 
     private readonly HttpClient _http;
-    private readonly string _apiKey;
+    private readonly string _token;
+    private readonly bool _isOAuth;
     private readonly string _model;
 
-    public ClaudeClient(HttpClient http, string apiKey, string model)
+    public ClaudeClient(HttpClient http, string token, string model, bool isOAuth = false)
     {
         _http = http;
-        _apiKey = apiKey;
+        _token = token;
         _model = model;
+        _isOAuth = isOAuth;
     }
 
     public async IAsyncEnumerable<StreamEvent> StreamMessageAsync(
@@ -35,7 +37,15 @@ public sealed class ClaudeClient : IClaudeClient
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
-        httpRequest.Headers.Add("x-api-key", _apiKey);
+        if (_isOAuth)
+        {
+            httpRequest.Headers.Add("Authorization", $"Bearer {_token}");
+            httpRequest.Headers.Add("anthropic-beta", "oauth-2025-04-20");
+        }
+        else
+        {
+            httpRequest.Headers.Add("x-api-key", _token);
+        }
         httpRequest.Headers.Add("anthropic-version", ApiVersion);
 
         using var response = await _http.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, ct);

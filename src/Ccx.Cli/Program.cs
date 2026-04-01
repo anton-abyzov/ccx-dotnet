@@ -48,15 +48,33 @@ for (var i = 0; i < args.Length; i++)
     }
 }
 
-// API key resolution: CLI > env > KeyVault
-apiKey ??= Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
-if (string.IsNullOrEmpty(apiKey) && keyVault.IsConfigured)
-    apiKey = await keyVault.GetApiKeyAsync();
-
-if (string.IsNullOrEmpty(apiKey))
+// Auth resolution: CLI > env > macOS Keychain > credentials file > KeyVault
+OAuthResolver.AuthResult auth;
+try
 {
-    AnsiConsole.MarkupLine("[red]Error:[/] Set ANTHROPIC_API_KEY or pass --api-key.");
-    return 1;
+    auth = OAuthResolver.Resolve(apiKey);
+}
+catch (InvalidOperationException)
+{
+    // Fallback to KeyVault if OAuth resolver found nothing
+    if (keyVault.IsConfigured)
+    {
+        var vaultKey = await keyVault.GetApiKeyAsync();
+        if (!string.IsNullOrEmpty(vaultKey))
+        {
+            auth = new OAuthResolver.AuthResult(vaultKey, false, "Key Vault");
+        }
+        else
+        {
+            AnsiConsole.MarkupLine("[red]Error:[/] No auth found. Set ANTHROPIC_API_KEY, pass --api-key, or log in with: claude auth");
+            return 1;
+        }
+    }
+    else
+    {
+        AnsiConsole.MarkupLine("[red]Error:[/] No auth found. Set ANTHROPIC_API_KEY, pass --api-key, or log in with: claude auth");
+        return 1;
+    }
 }
 
 var model = cascade.GetModel(cliModel);
@@ -66,7 +84,7 @@ var handler = ProxyConfig.CreateHandler(settings);
 using var http = new HttpClient(handler);
 
 // --- Initialize components ---
-var client = new ClaudeClient(http, apiKey, model);
+var client = new ClaudeClient(http, auth.Token, model, auth.IsOAuth);
 var tools = new ToolRegistry();
 var costTracker = new CostTracker();
 var chatRenderer = new ChatRenderer(AnsiConsole.Console);
@@ -121,7 +139,7 @@ var systemPrompt = PromptBuilder.BuildSystemPrompt(tools.All, claudeMd);
 var engine = new QueryEngine(client, tools, systemPrompt: systemPrompt);
 
 // Show inline welcome panel (scrolls naturally, no full-screen TUI)
-InlineRenderer.RenderWelcome(AnsiConsole.Console, model, "API Key", Directory.GetCurrentDirectory(), tools.Count);
+InlineRenderer.RenderWelcome(AnsiConsole.Console, model, auth.DisplayName, Directory.GetCurrentDirectory(), tools.Count);
 InlineRenderer.RenderFooter(AnsiConsole.Console);
 AnsiConsole.WriteLine();
 
