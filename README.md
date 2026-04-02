@@ -1,14 +1,14 @@
 # ccx-dotnet
 
-AI coding assistant CLI in .NET 10. 7.9MB AOT binary, 11 tools, Spectre.Console TUI. The only AI coding CLI built on .NET, targeting enterprise environments.
+AI coding assistant CLI in .NET 10, part of the [CCX (Community Code Extended)](https://github.com/anton-abyzov/ccx) project. 7.9MB AOT binary, 11 tools, Spectre.Console TUI. The only AI coding CLI built on .NET, targeting enterprise environments.
 
 ## Why CCX?
 
-CCX is a family of clean-room AI coding assistant implementations, built as open-source alternatives to proprietary tools. Each implementation is designed from the ground up using publicly documented API specifications and common patterns in AI-assisted development.
+CCX (Community Code Extended) is a custom AI coding assistant built from the ground up using publicly documented API specifications and common patterns in AI-assisted development. Each implementation is its own application with independent architecture decisions and language-idiomatic designs.
 
-ccx-dotnet fills a gap that nothing else does: there are zero AI coding CLIs built for the .NET ecosystem. Enterprise .NET shops running C#, F#, and Azure pipelines have no native option. This implementation brings AOT-compiled performance, Spectre.Console TUI, and the full Claude tool system to the platform where a huge portion of enterprise code actually lives.
+ccx-dotnet fills a gap that nothing else does: there are zero AI coding CLIs built for the .NET ecosystem. Enterprise .NET shops running C#, F#, and Azure pipelines have no native option. This implementation brings AOT-compiled performance, Spectre.Console TUI, and the full tool system to the platform where a huge portion of enterprise code actually lives.
 
-Unlike [instructkr/claw-code](https://github.com/instructkr/claw-code) (41.7k stars), which wraps Claude Code in a Python harness, ccx-dotnet is a ground-up .NET implementation with real tool execution, DI-based architecture, and a comprehensive test suite.
+Unlike [instructkr/claw-code](https://github.com/instructkr/claw-code) (41.7k stars), which catalogs tool inventories as structured data, ccx-dotnet is a ground-up .NET implementation with real tool execution, DI-based architecture, and a comprehensive test suite.
 
 - Architecture analysis: https://verified-skill.com/insights/claude-code
 - CCX umbrella: https://github.com/anton-abyzov/ccx
@@ -60,7 +60,7 @@ dotnet run --project src/Ccx.Cli
 
 ## Architecture
 
-Inspired by architecture analysis of Claude Code:
+Based on publicly documented patterns in AI coding assistant architecture:
 
 - **Tool System**: Interface-based tools with DI registration and permission gating
 - **Agent Spawning**: Task-based with CancellationToken and Channel for inter-agent IPC
@@ -115,6 +115,12 @@ tests/
   Ccx.Tools.Tests/
   Ccx.Permissions.Tests/
   Ccx.Integration.Tests/
+```
+
+## Getting Started
+
+```sh
+dotnet tool install -g ccx-dotnet
 ```
 
 ## Development
